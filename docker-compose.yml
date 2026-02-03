@@ -5,8 +5,12 @@ services:
     container_name: grok2api
     image: ${DOCKER_IMAGE:-errmercruz/grok2api:latest}
     restart: unless-stopped
+    networks:
+      - default
+      - dokploy
     ports:
       - "${SERVER_PORT:-8999}:8999"
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8999"]
     environment:
       # 时区
       TZ: Asia/Shanghai
@@ -45,3 +49,6 @@ services:
 networks:
   default:
     name: grok2api-network
+  dokploy:
+    external: true
+    name: dokploy-network
