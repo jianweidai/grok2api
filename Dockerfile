@@ -29,6 +29,10 @@ COPY app /app/app
 COPY main.py /app/main.py
 COPY scripts /app/scripts
 
+# 修复脚本文件的行尾格式和权限（使用 tr 命令更可靠）
+RUN find /app/scripts -type f -name "*.sh" -exec sh -c 'tr -d "\r" < "$1" > "$1.tmp" && mv "$1.tmp" "$1"' _ {} \; \
+    && chmod +x /app/scripts/*.sh
+
 RUN mkdir -p /app/data /app/data/tmp /app/logs
 
 EXPOSE 8999
