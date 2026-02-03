@@ -8,7 +8,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends tzdata ca-certificates \
+    && apt-get install -y --no-install-recommends \
+       tzdata \
+       ca-certificates \
+       default-libmysqlclient-dev \
+       pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

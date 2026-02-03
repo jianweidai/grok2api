@@ -3,9 +3,7 @@ version: '3.8'
 services:
   grok2api:
     container_name: grok2api
-    image: ${DOCKER_IMAGE:-ghcr.io/chenyme/grok2api:latest}
-    # 如果使用你自己构建的镜像，修改为：
-    # image: ${DOCKERHUB_USERNAME}/grok2api:latest
+    image: ${DOCKER_IMAGE:-errmercruz/grok2api:latest}
     restart: unless-stopped
     ports:
       - "${SERVER_PORT:-8999}:8999"
