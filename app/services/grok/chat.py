@@ -298,7 +298,12 @@ class GrokChatService:
             UpstreamException: 当 Grok API 返回错误且重试耗尽时
         """
         if stream is None:
-            stream = get_config("grok.stream", True)
+            # 优先使用环境变量，其次使用配置文件
+            stream_env = os.getenv("GROK_STREAM")
+            if stream_env is not None:
+                stream = stream_env.lower() in ("true", "1", "yes")
+            else:
+                stream = get_config("grok.stream", True)
 
         headers = ChatRequestBuilder.build_headers(token)
         payload = ChatRequestBuilder.build_payload(
