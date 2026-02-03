@@ -562,7 +562,16 @@ class ChatService:
         elif thinking == "disabled":
             think = False
 
-        is_stream = stream if stream is not None else get_config("grok.stream", True)
+        # 优先级：请求参数 > 环境变量 > 配置文件
+        if stream is not None:
+            is_stream = stream
+        else:
+            import os
+            stream_env = os.getenv("GROK_STREAM")
+            if stream_env is not None:
+                is_stream = stream_env.lower() in ("true", "1", "yes")
+            else:
+                is_stream = get_config("grok.stream", True)
 
         # 构造请求
         chat_request = ChatRequest(
