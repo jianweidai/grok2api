@@ -266,7 +266,9 @@ class GrokChatService:
     """Grok API 调用服务"""
 
     def __init__(self, proxy: str = None):
-        self.proxy = proxy or get_config("grok.base_proxy_url", "")
+        import os
+        # 优先使用环境变量，其次使用配置文件
+        self.proxy = proxy or os.getenv("GROK_PROXY_URL") or get_config("grok.base_proxy_url", "")
 
     async def chat(
         self,
@@ -316,6 +318,14 @@ class GrokChatService:
             """建立连接并返回 response 对象"""
             session = AsyncSession(impersonate=BROWSER)
             try:
+                # 详细日志
+                logger.debug(f"Chat API Request:")
+                logger.debug(f"  URL: {CHAT_API}")
+                logger.debug(f"  Headers: {headers}")
+                logger.debug(f"  Payload: {orjson.dumps(payload).decode()[:500]}")
+                logger.debug(f"  Proxies: {proxies}")
+                logger.debug(f"  Timeout: {timeout}")
+                
                 response = await session.post(
                     CHAT_API,
                     headers=headers,
@@ -325,9 +335,14 @@ class GrokChatService:
                     proxies=proxies,
                 )
 
+                logger.debug(f"Chat API Response:")
+                logger.debug(f"  Status: {response.status_code}")
+                logger.debug(f"  Headers: {dict(response.headers)}")
+
                 if response.status_code != 200:
                     try:
                         content = await response.text()
+                        logger.error(f"Response body: {content[:2000]}")
                         content = content[:1000]  # 限制长度避免日志过大
                     except:
                         content = "Unable to read response content"

@@ -27,6 +27,9 @@ services:
       SERVER_STORAGE_TYPE: mysql
       SERVER_STORAGE_URL: ${MYSQL_URL}
       
+      # Grok 代理配置（可选）
+      GROK_PROXY_URL: ${GROK_PROXY_URL:-}
+      
       # MySQL URL 格式：
       # mysql+aiomysql://用户名:密码@主机:端口/数据库名
       # 示例：mysql+aiomysql://grok2api:password@192.168.1.100:3306/grok2api
