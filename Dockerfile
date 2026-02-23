@@ -1,4 +1,42 @@
-FROM python:3.13-slim
+FROM python:3.13-alpine AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    TZ=Asia/Shanghai \
+    # 把 uv 包安装到系统 Python 环境
+    UV_PROJECT_ENVIRONMENT=/opt/venv
+
+# 确保 uv 的 bin 目录
+ENV PATH="$UV_PROJECT_ENVIRONMENT/bin:$PATH"
+
+RUN apk add --no-cache \
+    tzdata \
+    ca-certificates \
+    build-base \
+    linux-headers \
+    libffi-dev \
+    openssl-dev \
+    curl-dev \
+    cargo \
+    rust
+
+WORKDIR /app
+
+# 安装 uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+COPY pyproject.toml uv.lock ./
+
+RUN uv sync --frozen --no-dev --no-install-project \
+    && find /opt/venv -type d -name "__pycache__" -prune -exec rm -rf {} + \
+    && find /opt/venv -type f -name "*.pyc" -delete \
+    && find /opt/venv -type d -name "tests" -prune -exec rm -rf {} + \
+    && find /opt/venv -type d -name "test" -prune -exec rm -rf {} + \
+    && find /opt/venv -type d -name "testing" -prune -exec rm -rf {} + \
+    && find /opt/venv -type f -name "*.so" -exec strip --strip-unneeded {} + || true \
+    && rm -rf /root/.cache /tmp/uv-cache
+
+FROM python:3.13-alpine
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -7,33 +45,26 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-       tzdata \
-       ca-certificates \
-       default-libmysqlclient-dev \
-       pkg-config \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache \
+    tzdata \
+    ca-certificates \
+    libffi \
+    openssl \
+    libgcc \
+    libstdc++ \
+    libcurl
 
 WORKDIR /app
 
-RUN python -m venv "$VIRTUAL_ENV" \
-    && pip install --no-cache-dir uv
+COPY --from=builder /opt/venv /opt/venv
 
-COPY pyproject.toml uv.lock /app/
+COPY config.defaults.toml ./
+COPY app ./app
+COPY main.py ./
+COPY scripts ./scripts
 
-RUN uv sync --frozen --no-dev --no-install-project --active
-
-COPY config.defaults.toml /app/config.defaults.toml
-COPY app /app/app
-COPY main.py /app/main.py
-COPY scripts /app/scripts
-
-# 修复脚本文件的行尾格式和权限（使用 tr 命令更可靠）
-RUN find /app/scripts -type f -name "*.sh" -exec sh -c 'tr -d "\r" < "$1" > "$1.tmp" && mv "$1.tmp" "$1"' _ {} \; \
-    && chmod +x /app/scripts/*.sh
-
-RUN mkdir -p /app/data /app/data/tmp /app/logs
+RUN mkdir -p /app/data /app/logs \
+    && chmod +x /app/scripts/entrypoint.sh
 
 EXPOSE 8999
 
